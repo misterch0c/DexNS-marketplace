@@ -17,8 +17,22 @@ contract marketfinal {
     mapping(string => Selling) selling;
     Selling public myStruct;
 
+    modifier only_owner
+    {
+        if ( msg.sender != owner )
+            revert();
+        _;
+    }
+
+    modifier only_name_owner(string _name)
+    {
+        if ( msg.sender != dxns.ownerOf(_name) )
+            revert();
+        _;
+    }
+
     
-    function  registerNameProxy(string _name) payable returns (bool ok){
+    function  registerName(string _name) payable returns (bool ok){
             return dxns.registerName(_name);
     }
 
@@ -39,8 +53,8 @@ contract marketfinal {
     }
     
     function buyName(string _name) payable returns (bool ok){
-        //Check if name is to name, if price is ok & sell is approved
-        if ((selling[_namen].addr != 0) && (selling[_name].approved) && (selling[_namen].price <= msg.value) && checkValidity(n)){
+        //Check if name is to sell, if price is ok & sell is approved
+        if ((selling[_name].addr != 0) && (selling[_name].approved) && (selling[_name].price <= msg.value) && checkValidity(n)){
                 //Change ownership & destination to msg.sender
                 dxns.updateName(_name,msg.sender);
                 dxns.changeNameOwner(_name,msg.sender);
@@ -65,6 +79,19 @@ contract marketfinal {
         return 0;
     }
 
+    function revertSell(_name) only_name_owner(_name) {
+
+    }
+
+    function change_Owner(address _newOwner) only_owner
+    {
+        owner = _newOwner;
+    }
+
+    function dispose() only_owner
+    {
+        selfdestruct(owner);
+    }
 }
 
 contract DexNS_Frontend
