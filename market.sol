@@ -1,8 +1,8 @@
 pragma solidity ^0.4.11;
 
 contract marketfinal {
-    address DexNS_Frontend_addr = 0x4c3032756d5884D4cAeb2F1eba52cDb79235C2CA;
     address DexNS_Storage_addr = 0x4A74DdaEdaaf2a277E0F4cc56D31A69022A8fCC5;
+    address DexNS_Frontend_addr = DexNS_Storage(DexNS_Storage_addr).frontend_contract();
     DexNS_Storage dxnss = DexNS_Storage(DexNS_Storage_addr);
     DexNS_Frontend dxns = DexNS_Frontend(DexNS_Frontend_addr);
     
@@ -18,56 +18,49 @@ contract marketfinal {
     Selling public myStruct;
 
     
-    function  registerNameProxy(string myName) payable returns (bool ok){
-            return dxns.registerName(myName);
+    function  registerNameProxy(string _name) payable returns (bool ok){
+            return dxns.registerName(_name);
     }
-    
-    //Initiate selling
-    function sellName(string n, uint256 sellPrice) payable returns (bool ok){
-        address supposedOwner = msg.sender;
 
-        //if the caller is the owner of the name
-        if(dxns.ownerOf(n)==supposedOwner && checkValidity(n))
-        {
-            //add to mapping
-            selling[n]=Selling(msg.sender,sellPrice,false);
-            return true;
-        }else{
-           return false;
+    function onNameOwnerChanged(string _name, address _sender){
+        if(checkValidity(_name)){
+            selling[_name]=Selling(msg.sender,0,false);
+            //also changes the destination of the name
+            dxns.updateName(_name,address(this));
         }
     }
     
-    //Verify that previous owner changed the ownership of the name for this contract
-    function approveSell(string n) returns (bool ok){
-        if ((dxns.ownerOf(n)==address(this)) && (dxns.addressOf(n)==address(this))){
-            selling[n].approved=true;
+    function approveSell(string _name, uint256 _price) returns (bool ok){
+        if ((dxns.ownerOf(_name)==address(this)) && (dxns.addressOf(_name)==address(this))){
+            selling[_name].approved=true;
+            selling[_name].price=_price;
             return true;
         }
     }
     
-    function buyName(string n) payable returns (bool ok){
+    function buyName(string _name) payable returns (bool ok){
         //Check if name is to name, if price is ok & sell is approved
-        if ((selling[n].addr != 0) && (selling[n].approved) && (selling[n].price <= msg.value) && checkValidity(n)){
+        if ((selling[_namen].addr != 0) && (selling[_name].approved) && (selling[_namen].price <= msg.value) && checkValidity(n)){
                 //Change ownership & destination to msg.sender
-                dxns.updateName(n,msg.sender);
-                dxns.changeNameOwner(n,msg.sender);
+                dxns.updateName(_name,msg.sender);
+                dxns.changeNameOwner(_name,msg.sender);
                 //Send money to previous owner
-                selling[n].addr.transfer(msg.value);
+                selling[_name].addr.transfer(msg.value);
                 //Delete struct
-                delete selling[n];
+                delete selling[_name];
                 return true;
             }
         
     }
 
     //Check validity of a name
-    function checkValidity(string n) constant returns (bool ok){
+    function checkValidity(string _name) constant returns (bool ok){
         return dxns.endTimeOf(n) < now;
     }
     
-    function getPrice(string n)  returns (uint256 p){
-        if(selling[n].approved){
-            return (selling[n].price);
+    function getPrice(string _name)  returns (uint256 price){
+        if(selling[_name].approved){
+            return (selling[_name].price);
         }
         return 0;
     }
