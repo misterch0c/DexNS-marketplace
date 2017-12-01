@@ -69,6 +69,9 @@ contract NameReceiver {
     }
 
     function changePrice(string _name, uint256 _price){
+        if (selling[_name].addr == msg.sender && selling[_name].approved){
+            selling[_name].price == _price * 1000000000000000000;
+        }
 
     }
     
@@ -85,7 +88,7 @@ contract NameReceiver {
                 return true;
              }
         else{
-            return false;
+            revert();
         }
         
     }
